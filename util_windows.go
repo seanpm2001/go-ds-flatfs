@@ -13,7 +13,7 @@ package flatfs
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -93,10 +93,15 @@ func readFileOnce(filename string) ([]byte, error) {
 		// cheaply. If the size was wrong, we'll either waste some space off the end
 		// or reallocate as needed, but in the overwhelmingly common case we'll get
 		// it just right.
-		if size := fi.Size() + bytes.MinRead; size > n {
-			n = size
-		}
+		n += fi.Size()
 	}
 
-	return ioutil.ReadAll(f)
+	var buf bytes.Buffer
+	buf.Grow(n)
+	_, err := io.Copy(&buf, f)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
